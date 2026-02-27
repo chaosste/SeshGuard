@@ -10,8 +10,6 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)
 
-<img src="docs/assets/seshguard-release-screen-1.png" width="900" alt="SeshGuard interface screenshot" />
-
 <img src="docs/assets/seshguard-demo.gif" width="900" alt="SeshGuard demo" />
 
 </div>
