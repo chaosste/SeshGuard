@@ -9,6 +9,15 @@ export interface InteractionMetadata {
   symbol: string;
   color: string;
   description: string;
+  riskScale: number;
+}
+
+export interface InteractionEvidence {
+  code: string;
+  summary: string;
+  confidence: "high" | "medium" | "low" | "n/a";
+  sources: string;
+  mechanisms: string[];
 }
 
 export const DRUGS: Drug[] = [
@@ -44,43 +53,57 @@ export const LEGEND: Record<string, InteractionMetadata> = {
     label: "Low Risk & Synergy",
     symbol: "UP",
     color: "#1C8AD1",
-    description: "Generally low-risk combination with potential synergistic effects."
+    description: "Generally low-risk combination with potential synergistic effects.",
+    riskScale: 1
   },
   LRN: {
     label: "Low Risk & No Synergy",
     symbol: "CIRCLE",
     color: "#3EA5E6",
-    description: "Generally low-risk combination without notable synergy."
+    description: "Generally low-risk combination without notable synergy.",
+    riskScale: 1
   },
   LRD: {
     label: "Low Risk & Decrease",
     symbol: "DOWN",
     color: "#106DAE",
-    description: "Generally low-risk combination where one effect may reduce another."
+    description: "Generally low-risk combination where one effect may reduce another.",
+    riskScale: 2
   },
   CAU: {
     label: "Caution",
     symbol: "WARN",
     color: "#D7CA25",
-    description: "Use caution; increased side-effect or unpredictability risk."
+    description: "Use caution; increased side-effect or unpredictability risk.",
+    riskScale: 3
   },
   UNS: {
     label: "Unsafe",
     symbol: "HEART",
     color: "#DD8B28",
-    description: "Unsafe combination with substantial risk."
+    description: "Unsafe combination with substantial risk.",
+    riskScale: 4
   },
   DAN: {
     label: "Dangerous",
     symbol: "X",
     color: "#E21B2B",
-    description: "Dangerous combination; avoid."
+    description: "Dangerous combination; avoid.",
+    riskScale: 5
+  },
+  UNK: {
+    label: "Unknown / Insufficient Data",
+    symbol: "INFO",
+    color: "#6C757D",
+    description: "No explicit matrix classification found for this pair.",
+    riskScale: 0
   },
   SELF: {
     label: "Same Drug / N-A",
     symbol: "SELF",
     color: "#274F13",
-    description: "Diagonal label cell for the same substance; not an interaction rating."
+    description: "Diagonal label cell for the same substance; not an interaction rating.",
+    riskScale: -1
   }
 };
 
@@ -111,4 +134,96 @@ export const INTERACTIONS: Record<string, Record<string, string>> = {
   Benzodiazepines: { LSD: "LRD", Mushrooms: "LRD", DMT: "LRD", Mescaline: "LRD", DOx: "LRD", NBOMes: "LRD", "2C-x": "LRD", "2C-T-x": "LRD", "5-MeO-xT": "LRD", Cannabis: "LRD", Ketamine: "CAU", MXE: "CAU", DXM: "CAU", Nitrous: "LRD", Amphetamines: "LRD", MDMA: "LRD", Cocaine: "LRD", Caffeine: "LRD", Alcohol: "DAN", "GHB/GBL": "DAN", Opioids: "DAN", Tramadol: "DAN", Benzodiazepines: "SELF", MAOIs: "LRS", SSRIs: "LRN" },
   MAOIs: { LSD: "LRD", Mushrooms: "LRS", DMT: "LRS", Mescaline: "CAU", DOx: "CAU", NBOMes: "CAU", "2C-x": "CAU", "2C-T-x": "CAU", "5-MeO-xT": "DAN", Cannabis: "LRS", Ketamine: "CAU", MXE: "UNS", DXM: "DAN", Nitrous: "LRN", Amphetamines: "DAN", MDMA: "DAN", Cocaine: "DAN", Caffeine: "LRN", Alcohol: "UNS", "GHB/GBL": "LRS", Opioids: "CAU", Tramadol: "DAN", Benzodiazepines: "LRS", MAOIs: "SELF", SSRIs: "DAN" },
   SSRIs: { LSD: "LRD", Mushrooms: "LRD", DMT: "LRD", Mescaline: "LRD", DOx: "LRD", NBOMes: "LRD", "2C-x": "LRD", "2C-T-x": "LRD", "5-MeO-xT": "LRD", Cannabis: "LRN", Ketamine: "LRN", MXE: "CAU", DXM: "DAN", Nitrous: "LRN", Amphetamines: "LRN", MDMA: "LRD", Cocaine: "LRN", Caffeine: "LRN", Alcohol: "CAU", "GHB/GBL": "LRN", Opioids: "LRN", Tramadol: "DAN", Benzodiazepines: "LRN", MAOIs: "DAN", SSRIs: "SELF" }
+};
+
+const SEROTONERGIC_SET = new Set([
+  "MAOIs",
+  "SSRIs",
+  "MDMA",
+  "DXM",
+  "Tramadol",
+  "Amphetamines",
+  "Cocaine",
+  "5-MeO-xT",
+  "DOx",
+  "NBOMes",
+  "2C-T-x",
+]);
+
+const DEPRESSANT_SET = new Set([
+  "Alcohol",
+  "GHB/GBL",
+  "Opioids",
+  "Tramadol",
+  "Benzodiazepines",
+]);
+
+const STIMULANT_SET = new Set([
+  "Amphetamines",
+  "MDMA",
+  "Cocaine",
+  "Caffeine",
+  "DOx",
+  "NBOMes",
+  "2C-T-x",
+]);
+
+const pairKey = (a: string, b: string) => [a, b].sort().join("|");
+
+const buildMechanismNotes = (a: string, b: string): string[] => {
+  const notes: string[] = [];
+  if (SEROTONERGIC_SET.has(a) && SEROTONERGIC_SET.has(b)) {
+    notes.push("Serotonergic load stacking may raise serotonin-toxicity risk.");
+  }
+  if (DEPRESSANT_SET.has(a) && DEPRESSANT_SET.has(b)) {
+    notes.push("Dual depressant combination may increase respiratory/CNS depression risk.");
+  }
+  if (STIMULANT_SET.has(a) && STIMULANT_SET.has(b)) {
+    notes.push("Stacked stimulant burden may increase cardiovascular strain.");
+  }
+  if ((a === "MAOIs" && b === "5-MeO-xT") || (a === "5-MeO-xT" && b === "MAOIs")) {
+    notes.push("Explicitly high-risk MAOI + 5-MeO-type pairing in matrix.");
+  }
+  return notes;
+};
+
+export const getInteractionEvidence = (drug1: string, drug2: string): InteractionEvidence => {
+  if (!drug1 || !drug2) {
+    return {
+      code: "UNK",
+      summary: "Select two substances to compute an interaction classification.",
+      confidence: "n/a",
+      sources: "SeshGuard matrix v1",
+      mechanisms: [],
+    };
+  }
+
+  if (drug1 === drug2) {
+    return {
+      code: "SELF",
+      summary: "Same substance selected; this is not an interaction pair.",
+      confidence: "n/a",
+      sources: "SeshGuard matrix v1 (diagonal)",
+      mechanisms: [],
+    };
+  }
+
+  const direct = INTERACTIONS[drug1]?.[drug2];
+  const reverse = INTERACTIONS[drug2]?.[drug1];
+  const code = direct || reverse || "UNK";
+  const legend = LEGEND[code] || LEGEND.UNK;
+  const confidence: InteractionEvidence["confidence"] = direct || reverse ? "high" : "low";
+  const sourceHint = direct ? "matrix direct lookup" : reverse ? "matrix reverse lookup" : "matrix gap";
+  const mechanisms = buildMechanismNotes(drug1, drug2);
+  const summary = mechanisms.length
+    ? `${legend.description} ${mechanisms.join(" ")}`
+    : legend.description;
+
+  return {
+    code,
+    summary,
+    confidence,
+    sources: `SeshGuard matrix v1 (${sourceHint}; key=${pairKey(drug1, drug2)})`,
+    mechanisms,
+  };
 };

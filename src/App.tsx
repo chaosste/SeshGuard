@@ -4,15 +4,15 @@
  */
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { 
-  AlertTriangle, 
-  ArrowDown, 
-  ArrowUp, 
-  Circle, 
-  Heart, 
-  XCircle, 
-  Info, 
-  RefreshCw, 
+import {
+  AlertTriangle,
+  ArrowDown,
+  ArrowUp,
+  Circle,
+  Heart,
+  XCircle,
+  Info,
+  RefreshCw,
   ExternalLink,
   ShieldAlert,
   Menu,
@@ -26,8 +26,9 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import Markdown from 'react-markdown';
-import { DRUGS, LEGEND, INTERACTIONS, Drug } from './data/drugData';
+import { DRUGS, LEGEND, getInteractionEvidence, Drug } from './data/drugData';
 import { getInteractionExplanation, getDrugSummary } from './services/geminiService';
+import pillHeroImg from './assets/pill-hero.png';
 
 // --- Components ---
 
@@ -45,7 +46,7 @@ function SearchableSelect({ label, value, onChange, disabled, placeholder }: Sea
   const containerRef = useRef<HTMLDivElement>(null);
 
   const filteredDrugs = useMemo(() => {
-    return DRUGS.filter(drug => 
+    return DRUGS.filter(drug =>
       drug.name.toLowerCase().includes(search.toLowerCase()) ||
       drug.class.toLowerCase().includes(search.toLowerCase())
     );
@@ -72,9 +73,9 @@ function SearchableSelect({ label, value, onChange, disabled, placeholder }: Sea
         type="button"
         disabled={disabled}
         onClick={() => !disabled && setIsOpen(!isOpen)}
-        className="w-full bg-white border border-black/10 rounded-2xl px-4 py-4 text-left flex justify-between items-center focus:ring-2 focus:ring-[#1C8AD1] transition-all disabled:opacity-50"
+        className="w-full bg-[#09090b] border border-white/10 rounded-xl px-5 py-4 text-left flex justify-between items-center focus:outline-none focus:border-white/30 focus:shadow-[0_0_15px_rgba(255,255,255,0.1)] transition-all disabled:opacity-50"
       >
-        <span className={selectedDrug ? 'text-[#1a1a1a]' : 'text-black/30'}>
+        <span className={selectedDrug ? 'text-white font-medium' : 'text-white/40 font-medium'}>
           {selectedDrug ? selectedDrug.name : placeholder}
         </span>
         <ChevronDown className={`w-5 h-5 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
@@ -86,17 +87,17 @@ function SearchableSelect({ label, value, onChange, disabled, placeholder }: Sea
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="absolute z-40 top-full left-0 right-0 mt-2 bg-white border border-black/10 rounded-2xl shadow-2xl overflow-hidden"
+            className="absolute z-40 top-full left-0 right-0 mt-2 bg-[#000000] border border-white/10 rounded-xl shadow-[0_0_30px_rgba(0,0,0,1)] overflow-hidden backdrop-blur-3xl"
           >
-            <div className="p-3 border-b border-black/5 flex items-center gap-2 bg-black/[0.02]">
-              <Search className="w-4 h-4 text-black/30" />
+            <div className="p-3 border-b border-white/10 flex items-center gap-2 bg-white/5">
+              <Search className="w-4 h-4 text-white/40" />
               <input
                 autoFocus
                 type="text"
                 placeholder="Search drugs or classes..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full bg-transparent border-none outline-none text-sm py-1"
+                className="w-full bg-transparent border-none outline-none text-sm py-1 text-white placeholder-white/30"
               />
             </div>
             <div className="max-h-60 overflow-y-auto">
@@ -109,14 +110,14 @@ function SearchableSelect({ label, value, onChange, disabled, placeholder }: Sea
                       setIsOpen(false);
                       setSearch('');
                     }}
-                    className={`w-full text-left px-4 py-3 hover:bg-black/[0.03] transition-colors flex flex-col ${value === drug.id ? 'bg-indigo-50' : ''}`}
+                    className={`w-full text-left px-4 py-3 hover:bg-white/10 transition-colors flex flex-col ${value === drug.id ? 'bg-white/5 border-l-2 border-white/50' : 'border-l-2 border-transparent'}`}
                   >
-                    <span className="font-semibold text-sm">{drug.name}</span>
-                    <span className="text-[10px] uppercase tracking-wider text-black/40">{drug.class}</span>
+                    <span className="font-semibold text-sm text-white">{drug.name}</span>
+                    <span className="text-[10px] uppercase font-bold tracking-widest text-[#94a3b8]">{drug.class}</span>
                   </button>
                 ))
               ) : (
-                <div className="px-4 py-8 text-center text-black/40 text-sm italic">
+                <div className="px-4 py-8 text-center text-white/40 text-sm italic font-medium">
                   No drugs found matching "{search}"
                 </div>
               )}
@@ -125,6 +126,84 @@ function SearchableSelect({ label, value, onChange, disabled, placeholder }: Sea
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+// --- Logos ---
+
+/** Cyberpunk Night City pill hero with neon glow — CP2077 signature yellow */
+function PillHeroLogo({ size = 32 }: { size?: number }) {
+  const neon = '#FCE300'; // Cyberpunk 2077 yellow
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 100 100"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-label="SeshGuard pill hero logo"
+      style={{ overflow: 'visible' }}
+    >
+      <defs>
+        {/* Soft outer glow */}
+        <filter id="neon-outer" x="-60%" y="-60%" width="220%" height="220%">
+          <feGaussianBlur stdDeviation="4" result="blur1" />
+          <feGaussianBlur stdDeviation="8" result="blur2" />
+          <feMerge>
+            <feMergeNode in="blur2" />
+            <feMergeNode in="blur1" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+        {/* Intense inner core glow */}
+        <filter id="neon-core" x="-40%" y="-40%" width="180%" height="180%">
+          <feGaussianBlur stdDeviation="1.5" result="coreBlur" />
+          <feMerge>
+            <feMergeNode in="coreBlur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
+
+      {/* Glow layer — soft outer bloom */}
+      <g filter="url(#neon-outer)" stroke={neon} strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" opacity="0.7">
+        <rect x="30" y="8" width="40" height="56" rx="20" />
+        <line x1="30" y1="36" x2="70" y2="36" />
+        <path d="M30 42 Q14 38 12 50" />
+        <path d="M70 42 Q86 38 88 50" />
+        <path d="M36 30 Q20 48 32 80 Q50 72 68 80 Q80 48 64 30" />
+        <line x1="42" y1="64" x2="38" y2="88" />
+        <line x1="58" y1="64" x2="62" y2="88" />
+      </g>
+
+      {/* Sharp core lines — bright white center */}
+      <g filter="url(#neon-core)" stroke={neon} strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="30" y="8" width="40" height="56" rx="20" />
+        <line x1="30" y1="36" x2="70" y2="36" />
+        <path d="M30 42 Q14 38 12 50" />
+        <path d="M70 42 Q86 38 88 50" />
+        <path d="M36 30 Q20 48 32 80 Q50 72 68 80 Q80 48 64 30" fill="none" />
+        <line x1="42" y1="64" x2="38" y2="88" />
+        <line x1="58" y1="64" x2="62" y2="88" />
+        <path d="M33 88 L38 88 L42 92 L33 92 Z" fill={neon} stroke="none" />
+        <path d="M58 88 L67 88 L67 92 L58 92 Z" fill={neon} stroke="none" />
+      </g>
+    </svg>
+  );
+}
+
+/** Battlements / Crenelation — kept as alternative option */
+function BattlementsLogo({ size = 32 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="SeshGuard battlements logo">
+      <rect x="2" y="4" width="5" height="9" rx="0.5" fill="white" />
+      <rect x="10" y="4" width="5" height="9" rx="0.5" fill="white" />
+      <rect x="18" y="4" width="5" height="9" rx="0.5" fill="white" />
+      <rect x="26" y="4" width="4" height="9" rx="0.5" fill="white" />
+      <rect x="2" y="13" width="28" height="5" rx="0.5" fill="white" />
+      <rect x="2" y="18" width="28" height="10" rx="0.5" fill="white" />
+      <rect x="12" y="20" width="8" height="8" rx="1" fill="black" />
+    </svg>
   );
 }
 
@@ -140,7 +219,7 @@ export default function App() {
   const [isLoadingSummary, setIsLoadingSummary] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [favorites, setFavorites] = useState<{id: string, d1: string, d2: string, code: string}[]>([]);
+  const [favorites, setFavorites] = useState<{ id: string, d1: string, d2: string, code: string }[]>([]);
 
   // Load favorites
   useEffect(() => {
@@ -159,14 +238,16 @@ export default function App() {
     localStorage.setItem('seshguard_favorites', JSON.stringify(favorites));
   }, [favorites]);
 
-  const interactionCode = useMemo(() => {
+  const interactionEvidence = useMemo(() => {
     if (!drug1 || !drug2) return null;
-    return INTERACTIONS[drug1]?.[drug2] || INTERACTIONS[drug2]?.[drug1] || null;
+    return getInteractionEvidence(drug1, drug2);
   }, [drug1, drug2]);
+
+  const interactionCode = interactionEvidence?.code || null;
 
   const interaction = useMemo(() => {
     if (!interactionCode) return null;
-    return LEGEND[interactionCode];
+    return LEGEND[interactionCode] || LEGEND.UNK;
   }, [interactionCode]);
 
   const isFavorited = useMemo(() => {
@@ -178,15 +259,15 @@ export default function App() {
   const toggleFavorite = () => {
     if (!drug1 || !drug2 || !interactionCode) return;
     const id = [drug1, drug2].sort().join('-');
-    
+
     if (isFavorited) {
       setFavorites(favorites.filter(f => f.id !== id));
     } else {
-      setFavorites([...favorites, { 
-        id, 
-        d1: drug1, 
-        d2: drug2, 
-        code: interactionCode 
+      setFavorites([...favorites, {
+        id,
+        d1: drug1,
+        d2: drug2,
+        code: interactionCode
       }]);
     }
   };
@@ -199,16 +280,16 @@ export default function App() {
     setError(null);
     setExplanation('');
     setSummary('');
-    
+
     const d1Obj = DRUGS.find(d => d.id === drug1);
     const d2Obj = DRUGS.find(d => d.id === drug2);
     const d1Name = d1Obj?.name || drug1;
     const d2Name = d2Obj?.name || drug2;
-    
+
     try {
       // Fetch Interaction Explanation if 2 drugs are selected
-      if (drug1 && drug2 && interaction) {
-        getInteractionExplanation(d1Name, d2Name, interaction.label, interaction.description)
+      if (drug1 && drug2 && interaction && interactionEvidence) {
+        getInteractionExplanation(d1Name, d2Name, interaction.label, interactionEvidence.summary)
           .then(setExplanation)
           .catch(err => console.error("Exp error:", err))
           .finally(() => setIsLoadingExplanation(false));
@@ -219,7 +300,7 @@ export default function App() {
       // Fetch Detailed Summary (Single or Combined)
       const targetDrug1 = drug1 ? d1Name : d2Name;
       const targetDrug2 = (drug1 && drug2) ? d2Name : undefined;
-      
+
       const drugSummary = await getDrugSummary(targetDrug1, targetDrug2);
       setSummary(drugSummary);
     } catch (err: any) {
@@ -252,33 +333,45 @@ export default function App() {
       case 'WARN': return <AlertTriangle className="w-8 h-8" />;
       case 'HEART': return <Heart className="w-8 h-8" />;
       case 'X': return <XCircle className="w-8 h-8" />;
+      case 'INFO': return <Info className="w-8 h-8" />;
       default: return <Sparkles className="w-8 h-8" />;
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#f5f5f0] text-[#1a1a1a] font-sans selection:bg-indigo-100">
+    <div className="min-h-screen bg-grid font-sans selection:bg-white/20">
       {/* Navigation */}
-      <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-black/5 px-6 py-4 flex justify-between items-center">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-[#274F13] rounded-lg flex items-center justify-center text-white font-bold">S</div>
-          <span className="text-xl font-bold tracking-tight">SeshGuard</span>
+      <nav className="sticky top-0 z-50 bg-[#000000]/80 backdrop-blur-xl border-b border-white/10 px-6 py-4 flex justify-between items-center shadow-[0_4px_30px_rgba(0,0,0,1)]">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-[#FCE300]/10 border border-[#FCE300]/25 flex items-center justify-center shadow-[0_0_18px_rgba(252,227,0,0.35)]">
+            <img
+              src={pillHeroImg}
+              alt="SeshGuard pill hero"
+              width={30}
+              height={30}
+              style={{
+                filter: 'invert(1) sepia(1) saturate(8) hue-rotate(355deg) drop-shadow(0 0 4px #FCE300) drop-shadow(0 0 10px rgba(252,227,0,0.6))',
+                imageRendering: 'crisp-edges'
+              }}
+            />
+          </div>
+          <span className="text-xl font-bold tracking-wider uppercase font-display text-white">SeshGuard</span>
         </div>
         <div className="flex items-center gap-2">
           {favorites.length > 0 && (
-            <button 
+            <button
               onClick={() => setIsMenuOpen(true)}
-              className="relative p-2 hover:bg-black/5 rounded-full transition-colors"
+              className="relative p-2 hover:bg-white/10 rounded-full transition-colors"
             >
-              <Star className="w-6 h-6 fill-yellow-400 text-yellow-400" />
-              <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 text-white text-[10px] flex items-center justify-center rounded-full font-bold">
+              <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" />
+              <span className="absolute top-0 right-0 w-4 h-4 bg-red-600 text-white text-[10px] flex items-center justify-center rounded-full font-bold shadow-neon-dan">
                 {favorites.length}
               </span>
             </button>
           )}
-          <button 
+          <button
             onClick={() => setIsMenuOpen(true)}
-            className="p-2 hover:bg-black/5 rounded-full transition-colors"
+            className="p-2 hover:bg-white/10 rounded-full transition-colors text-white/80 hover:text-white"
           >
             <Menu className="w-6 h-6" />
           </button>
@@ -287,34 +380,34 @@ export default function App() {
 
       {/* Main Content */}
       <main className="max-w-2xl mx-auto px-6 py-12 md:py-20">
-        <header className="text-center mb-12">
-          <motion.h1 
+        <header className="text-center mb-16">
+          <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-4xl md:text-5xl font-bold mb-4 tracking-tight"
+            className="text-3xl md:text-5xl font-bold mb-4 tracking-widest font-display text-white uppercase"
           >
-            Drug Interaction Guide
+            Interaction Terminal
           </motion.h1>
-          <motion.p 
+          <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="text-muted-foreground italic text-lg"
+            className="text-[#94A3B8] font-mono text-xs md:text-sm tracking-widest uppercase"
           >
-            We do not record or store your data
+            {'>'} No telemetry recording active
           </motion.p>
         </header>
 
         <section className="space-y-8">
           <div className="grid md:grid-cols-2 gap-6">
-            <SearchableSelect 
+            <SearchableSelect
               label="Choose the first drug"
               value={drug1}
               onChange={setDrug1}
               disabled={showResult}
               placeholder="Select substance..."
             />
-            <SearchableSelect 
+            <SearchableSelect
               label="Choose the second drug"
               value={drug2}
               onChange={setDrug2}
@@ -330,9 +423,9 @@ export default function App() {
                 whileTap={{ scale: 0.98 }}
                 onClick={handleFindOut}
                 disabled={!drug1 && !drug2}
-                className="w-full bg-[#1a1a1a] text-white rounded-2xl py-5 text-xl font-bold shadow-xl shadow-black/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                className="w-full bg-white text-black rounded-xl py-5 text-sm uppercase tracking-[0.3em] font-bold shadow-[0_0_20px_rgba(255,255,255,0.2)] hover:shadow-[0_0_30px_rgba(255,255,255,0.4)] disabled:opacity-20 disabled:cursor-not-allowed transition-all mt-4 font-display"
               >
-                FIND OUT
+                Execute Analysis
               </motion.button>
             ) : (
               <motion.button
@@ -341,10 +434,10 @@ export default function App() {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={handleReset}
-                className="w-full border-2 border-[#1a1a1a] text-[#1a1a1a] rounded-2xl py-5 text-xl font-bold flex items-center justify-center gap-2 transition-all"
+                className="w-full border border-white/20 text-[#94a3b8] hover:text-white hover:border-white/50 bg-white/5 rounded-xl py-4 text-xs font-bold uppercase tracking-[0.2em] flex items-center justify-center gap-3 transition-all mt-4"
               >
-                <RefreshCw className="w-6 h-6" />
-                CHOOSE ANOTHER
+                <RefreshCw className="w-4 h-4" />
+                Clear Matrix
               </motion.button>
             )}
           </div>
@@ -360,35 +453,51 @@ export default function App() {
               className="mt-12 space-y-8"
             >
               {interaction && (
-                <div 
-                  className="rounded-[32px] p-8 md:p-12 text-white shadow-2xl overflow-hidden relative"
-                  style={{ backgroundColor: interaction.color }}
+                <div
+                  className="rounded-[32px] p-8 md:p-12 text-white shadow-2xl relative overflow-hidden bg-black/60 border border-white/5"
                 >
-                  {/* Background Pattern */}
-                  <div className="absolute top-0 right-0 p-4 opacity-10">
+                  {/* Glowing neon borders based on interaction code */}
+                  <div className="absolute inset-0 opacity-100 pointer-events-none transition-opacity duration-1000" style={{ boxShadow: `inset 0 0 50px -10px ${interaction.color}80, inset 0 0 20px -5px ${interaction.color}` }}></div>
+
+                  {/* Background Symbol Pattern */}
+                  <div className="absolute -top-10 -right-10 p-4 opacity-[0.03] scale-[3] pointer-events-none" style={{ color: interaction.color }}>
                     {getIcon(interaction.symbol)}
                   </div>
 
                   <div className="relative z-10 flex flex-col items-center text-center">
-                    <div className="mb-6 p-4 bg-white/20 rounded-full backdrop-blur-sm">
+                    <div
+                      className="mb-8 p-5 rounded-xl border border-white/20 shadow-[0_0_30px_rgba(0,0,0,0.8)] backdrop-blur-md"
+                      style={{ backgroundColor: `${interaction.color}15`, color: interaction.color }}
+                    >
                       {getIcon(interaction.symbol)}
                     </div>
                     <h2 className="text-3xl md:text-4xl font-black mb-4 uppercase tracking-tight">
                       {interaction.label}
                     </h2>
                     <p className="text-lg md:text-xl opacity-90 max-w-md leading-relaxed mb-8">
-                      {interaction.description}
+                      {interactionEvidence?.summary || interaction.description}
                     </p>
 
+                    {interactionEvidence && (
+                      <div className="mb-6 w-full max-w-xl rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-left">
+                        <p className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-2">Evidence Engine</p>
+                        <p className="text-sm text-white/80 leading-relaxed">{interactionEvidence.summary}</p>
+                        <div className="mt-3 flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.14em] text-white/50">
+                          <span className="rounded border border-white/15 px-2 py-1">confidence: {interactionEvidence.confidence}</span>
+                          <span className="rounded border border-white/15 px-2 py-1">{interactionEvidence.sources}</span>
+                        </div>
+                      </div>
+                    )}
+
                     <motion.button
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
                       onClick={toggleFavorite}
-                      className={`flex items-center gap-2 px-6 py-3 rounded-full backdrop-blur-md transition-all ${isFavorited ? 'bg-white text-black' : 'bg-white/20 text-white hover:bg-white/30'}`}
+                      className={`flex items-center gap-2 mt-4 px-6 py-3 rounded-full border transition-all duration-300 font-display ${isFavorited ? `bg-[${interaction.color}]/10 border-[${interaction.color}]/50 text-[${interaction.color}] shadow-[0_0_15px_${interaction.color}40]` : 'bg-white/5 border-white/10 text-white/50 hover:bg-white/10 hover:text-white'}`}
                     >
-                      <Star className={`w-5 h-5 ${isFavorited ? 'fill-yellow-400 text-yellow-400' : ''}`} />
-                      <span className="text-sm font-bold uppercase tracking-wider">
-                        {isFavorited ? 'Saved to Favorites' : 'Add to Favorites'}
+                      <Star className={`w-4 h-4 ${isFavorited ? 'fill-current' : ''}`} />
+                      <span className="text-xs font-bold uppercase tracking-[0.2em]">
+                        {isFavorited ? 'Saved to Logs' : 'Log Interaction'}
                       </span>
                     </motion.button>
                   </div>
@@ -397,30 +506,32 @@ export default function App() {
 
               {/* AI Interaction Insight (Only if 2 drugs) */}
               {drug1 && drug2 && interaction && (
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.2 }}
-                  className="bg-white rounded-[32px] p-8 md:p-10 border border-black/5 shadow-sm relative overflow-hidden"
+                  className="clinical-panel rounded-2xl p-8 md:p-10 shadow-neon-gemini relative overflow-hidden group"
                 >
-                  <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center gap-2 text-indigo-600">
+                  <div className="absolute top-0 right-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#10B981]/50 to-transparent" />
+
+                  <div className="flex items-center justify-between mb-8 border-b border-white/10 pb-4">
+                    <div className="flex items-center gap-3 text-[#10B981]">
                       <Sparkles className={`w-5 h-5 ${isLoadingExplanation ? 'animate-pulse' : ''}`} />
-                      <span className="text-sm font-bold uppercase tracking-widest">Interaction Insight</span>
+                      <span className="text-xs font-bold uppercase tracking-[0.2em] font-display">Synthesis</span>
                     </div>
                     {isLoadingExplanation && (
-                      <div className="flex gap-1">
-                        <motion.div animate={{ scale: [1, 1.5, 1] }} transition={{ repeat: Infinity, duration: 1 }} className="w-1.5 h-1.5 bg-indigo-600 rounded-full" />
-                        <motion.div animate={{ scale: [1, 1.5, 1] }} transition={{ repeat: Infinity, duration: 1, delay: 0.2 }} className="w-1.5 h-1.5 bg-indigo-600 rounded-full" />
-                        <motion.div animate={{ scale: [1, 1.5, 1] }} transition={{ repeat: Infinity, duration: 1, delay: 0.4 }} className="w-1.5 h-1.5 bg-indigo-600 rounded-full" />
+                      <div className="flex gap-1.5">
+                        <motion.div animate={{ scale: [1, 1.5, 1], opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1.5 }} className="w-1.5 h-1.5 bg-[#10B981] rounded-full shadow-[0_0_8px_#10B981]" />
+                        <motion.div animate={{ scale: [1, 1.5, 1], opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1.5, delay: 0.2 }} className="w-1.5 h-1.5 bg-[#10B981] rounded-full shadow-[0_0_8px_#10B981]" />
+                        <motion.div animate={{ scale: [1, 1.5, 1], opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1.5, delay: 0.4 }} className="w-1.5 h-1.5 bg-[#10B981] rounded-full shadow-[0_0_8px_#10B981]" />
                       </div>
                     )}
                   </div>
-                  
+
                   {isLoadingExplanation ? (
-                    <div className="space-y-4">
-                      <div className="h-4 bg-black/5 rounded w-3/4"></div>
-                      <div className="h-4 bg-black/5 rounded w-full"></div>
+                    <div className="space-y-4 opacity-50">
+                      <div className="h-4 bg-white/10 rounded-sm w-3/4 animate-pulse"></div>
+                      <div className="h-4 bg-white/10 rounded-sm w-full animate-pulse delay-75"></div>
                     </div>
                   ) : (
                     <div className="markdown-body">
@@ -431,43 +542,45 @@ export default function App() {
               )}
 
               {/* Detailed Summary */}
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.4 }}
-                className="bg-white rounded-[32px] p-8 md:p-10 border border-black/5 shadow-sm relative overflow-hidden"
+                className="clinical-panel rounded-2xl p-8 md:p-10 shadow-[0_0_30px_-5px_rgba(56,189,248,0.15)] relative overflow-hidden group"
               >
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-2 text-emerald-600">
+                <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#38BDF8]/50 to-transparent" />
+
+                <div className="flex items-center justify-between mb-8 border-b border-white/10 pb-4">
+                  <div className="flex items-center gap-3 text-[#38BDF8]">
                     <Info className={`w-5 h-5 ${isLoadingSummary ? 'animate-pulse' : ''}`} />
-                    <span className="text-sm font-bold uppercase tracking-widest">Substance Profile</span>
+                    <span className="text-xs font-bold uppercase tracking-[0.2em] font-display">Substance Context</span>
                   </div>
                   {isLoadingSummary && (
-                    <div className="flex gap-1">
-                      <motion.div animate={{ scale: [1, 1.5, 1] }} transition={{ repeat: Infinity, duration: 1 }} className="w-1.5 h-1.5 bg-emerald-600 rounded-full" />
-                      <motion.div animate={{ scale: [1, 1.5, 1] }} transition={{ repeat: Infinity, duration: 1, delay: 0.2 }} className="w-1.5 h-1.5 bg-emerald-600 rounded-full" />
-                      <motion.div animate={{ scale: [1, 1.5, 1] }} transition={{ repeat: Infinity, duration: 1, delay: 0.4 }} className="w-1.5 h-1.5 bg-emerald-600 rounded-full" />
+                    <div className="flex gap-1.5">
+                      <motion.div animate={{ scale: [1, 1.5, 1], opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1.5 }} className="w-1.5 h-1.5 bg-[#38BDF8] rounded-full shadow-[0_0_8px_#38BDF8]" />
+                      <motion.div animate={{ scale: [1, 1.5, 1], opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1.5, delay: 0.2 }} className="w-1.5 h-1.5 bg-[#38BDF8] rounded-full shadow-[0_0_8px_#38BDF8]" />
+                      <motion.div animate={{ scale: [1, 1.5, 1], opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1.5, delay: 0.4 }} className="w-1.5 h-1.5 bg-[#38BDF8] rounded-full shadow-[0_0_8px_#38BDF8]" />
                     </div>
                   )}
                 </div>
-                
+
                 {isLoadingSummary ? (
-                  <div className="space-y-4">
-                    <motion.div 
+                  <div className="space-y-4 opacity-50 relative z-10">
+                    <motion.div
                       initial={{ x: '-100%' }}
                       animate={{ x: '100%' }}
-                      transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
-                      className="absolute top-0 left-0 h-1 bg-emerald-600/20 w-full"
+                      transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
+                      className="absolute top-0 left-0 h-[1px] bg-gradient-to-r from-transparent via-[#38BDF8]/50 to-transparent w-full"
                     />
-                    <div className="h-4 bg-black/5 rounded w-3/4"></div>
-                    <div className="h-4 bg-black/5 rounded w-full"></div>
-                    <div className="h-4 bg-black/5 rounded w-5/6"></div>
-                    <div className="h-4 bg-black/5 rounded w-2/3"></div>
+                    <div className="h-4 bg-white/10 rounded-sm w-3/4 animate-pulse"></div>
+                    <div className="h-4 bg-white/10 rounded-sm w-full animate-pulse delay-75"></div>
+                    <div className="h-4 bg-white/10 rounded-sm w-5/6 animate-pulse delay-150"></div>
+                    <div className="h-4 bg-white/10 rounded-sm w-2/3 animate-pulse delay-200"></div>
                   </div>
                 ) : error ? (
-                  <div className="flex items-start gap-4 p-6 bg-red-50 rounded-2xl border border-red-100">
-                    <AlertCircle className="w-6 h-6 text-red-500 shrink-0 mt-0.5" />
-                    <p className="text-red-800 font-medium leading-relaxed">
+                  <div className="flex items-start gap-4 p-6 bg-red-950/30 rounded-xl border border-red-900/50">
+                    <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+                    <p className="text-red-300 font-medium leading-relaxed font-mono text-sm">
                       {error}
                     </p>
                   </div>
@@ -481,15 +594,15 @@ export default function App() {
           )}
         </AnimatePresence>
 
-        <footer className="mt-20 pt-12 border-t border-black/5 text-center">
-          <a 
-            href="https://www.newpsychonaut.com" 
-            target="_blank" 
+        <footer className="mt-20 pt-12 border-t border-white/5 text-center">
+          <a
+            href="https://www.newpsychonaut.com"
+            target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-indigo-600 font-semibold hover:underline"
+            className="inline-flex items-center gap-1.5 text-white/30 hover:text-white font-mono text-xs uppercase tracking-[0.2em] transition-colors duration-200"
           >
-            www.newpsychonaut.com
-            <ExternalLink className="w-4 h-4" />
+            Terminal Core | New Psychonaut
+            <ExternalLink className="w-3 h-3" />
           </a>
         </footer>
       </main>
@@ -498,25 +611,25 @@ export default function App() {
       <AnimatePresence>
         {isMenuOpen && (
           <>
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsMenuOpen(false)}
               className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[60]"
             />
-            <motion.div 
+            <motion.div
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed top-0 right-0 bottom-0 w-full max-w-md bg-white z-[70] shadow-2xl p-8 overflow-y-auto"
+              className="fixed top-0 right-0 bottom-0 w-full max-w-md bg-[#09090b] border-l border-white/10 z-[70] shadow-[-20px_0_50px_rgba(0,0,0,0.6)] p-8 overflow-y-auto"
             >
-              <div className="flex justify-between items-center mb-12">
-                <h2 className="text-2xl font-bold">Menu</h2>
-                <button 
+              <div className="flex justify-between items-center mb-12 border-b border-white/10 pb-6">
+                <h2 className="text-xl font-bold font-display uppercase tracking-widest text-white">System Logs</h2>
+                <button
                   onClick={() => setIsMenuOpen(false)}
-                  className="p-2 hover:bg-black/5 rounded-full transition-colors"
+                  className="p-2 hover:bg-white/10 rounded-full transition-colors text-white/50 hover:text-white"
                 >
                   <X className="w-6 h-6" />
                 </button>
@@ -528,7 +641,7 @@ export default function App() {
                   <section className="space-y-6">
                     <div className="flex items-center gap-2 text-yellow-500">
                       <Star className="w-5 h-5 fill-current" />
-                      <h3 className="text-sm font-bold uppercase tracking-widest">Favorite Interactions</h3>
+                      <h3 className="text-xs font-bold uppercase tracking-[0.2em] font-display">Saved Interactions</h3>
                     </div>
                     <div className="grid gap-3">
                       {favorites.map(fav => {
@@ -536,11 +649,11 @@ export default function App() {
                         const d2Name = DRUGS.find(d => d.id === fav.d2)?.name || fav.d2;
                         const inter = LEGEND[fav.code];
                         return (
-                          <div 
+                          <div
                             key={fav.id}
-                            className="group flex items-center justify-between p-4 rounded-2xl bg-black/[0.03] border border-black/5 hover:border-black/10 transition-all"
+                            className="group flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/5 hover:border-white/20 hover:bg-white/10 transition-all cursor-pointer"
                           >
-                            <button 
+                            <button
                               onClick={() => {
                                 setDrug1(fav.d1);
                                 setDrug2(fav.d2);
@@ -551,14 +664,14 @@ export default function App() {
                               className="flex-1 text-left"
                             >
                               <div className="flex items-center gap-2 mb-1">
-                                <span className="font-bold text-sm">{d1Name} + {d2Name}</span>
+                                <span className="font-bold text-sm text-white">{d1Name} + {d2Name}</span>
                               </div>
-                              <div className="flex items-center gap-1.5">
-                                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: inter?.color }} />
-                                <span className="text-[10px] uppercase font-bold tracking-wider opacity-40">{inter?.label}</span>
+                              <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 rounded-full shadow-[0_0_8px_currentColor]" style={{ backgroundColor: inter?.color, color: inter?.color }} />
+                                <span className="text-[10px] uppercase font-bold tracking-[0.2em] opacity-60 text-white">{inter?.label}</span>
                               </div>
                             </button>
-                            <button 
+                            <button
                               onClick={() => setFavorites(favorites.filter(f => f.id !== fav.id))}
                               className="p-2 text-black/20 hover:text-red-500 hover:bg-red-50 rounded-full transition-all opacity-0 group-hover:opacity-100"
                             >
@@ -571,44 +684,43 @@ export default function App() {
                   </section>
                 )}
 
-                <section className="space-y-4">
-                  <div className="flex items-center gap-2 text-red-600">
-                    <ShieldAlert className="w-6 h-6" />
-                    <h3 className="text-xl font-bold uppercase tracking-tight">Important!</h3>
+                <section className="space-y-4 pt-4 border-t border-white/5">
+                  <div className="flex items-center gap-2 text-red-500">
+                    <ShieldAlert className="w-5 h-5" />
+                    <h3 className="text-xs font-bold uppercase tracking-[0.2em] font-display">Warning</h3>
                   </div>
-                  <div className="space-y-4 text-black/70 leading-relaxed">
-                    <p className="font-bold text-black">This app is compiled from authoritative sources.</p>
-                    <p>However it should not be taken as clinical medical advice.</p>
-                    <p>If in any doubt whatsoever seek professional medical help.</p>
+                  <div className="space-y-3 text-[#94a3b8] leading-relaxed text-sm font-mono bg-red-950/20 p-4 rounded-xl border border-red-900/30">
+                    <p className="text-red-200">System data aggregated from <span className="text-white font-bold">TripSit.me</span> & other resources.</p>
+                    <p>Not intended for clinical medical usage. Information is for educational and harm reduction purposes only.</p>
                   </div>
                 </section>
 
-                <section className="space-y-6">
-                  <h3 className="text-sm font-bold uppercase tracking-widest text-black/40">Useful Links</h3>
-                  <div className="grid gap-4">
+                <section className="space-y-6 pt-4 border-t border-white/5">
+                  <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-white/40 font-display">External Resources</h3>
+                  <div className="grid gap-3">
                     {[
                       { name: 'Crisis Help UK', url: 'https://thatsmental.co.uk/crisis' },
                       { name: 'Drug Science', url: 'https://www.drugscience.org.uk/' },
                       { name: 'PsyCare', url: 'https://www.psycareuk.org/psychedelic-support' },
                       { name: 'Zendo Project', url: 'https://zendoproject.org/' }
                     ].map(link => (
-                      <a 
+                      <a
                         key={link.name}
                         href={link.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex justify-between items-center p-4 rounded-2xl bg-black/5 hover:bg-black/10 transition-colors group"
+                        className="flex justify-between items-center p-4 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/20 transition-all group shadow-[0_4px_20px_rgba(0,0,0,0.5)] text-white/80 hover:text-white"
                       >
-                        <span className="font-semibold">{link.name}</span>
+                        <span className="font-medium text-sm tracking-wide">{link.name}</span>
                         <ExternalLink className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
                       </a>
                     ))}
                   </div>
                 </section>
 
-                <section className="pt-8 border-t border-black/5">
-                  <p className="text-xs text-black/40 text-center">
-                    SeshGuard v1.1 • Harm Reduction First
+                <section className="pt-8 text-center pb-8">
+                  <p className="font-mono text-xs text-white/20 uppercase tracking-[0.3em]">
+                    STS_v2.0 • Online
                   </p>
                 </section>
               </div>
