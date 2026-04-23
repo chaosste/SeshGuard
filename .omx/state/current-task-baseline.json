@@ -2,6 +2,13 @@
   "version": 1,
   "tasks": [
     {
+      "branch_name": "codex/seshguard-azure-workflow",
+      "worktree_path": "/Users/stephenbeale/Projects/SeshGuard",
+      "status": "active",
+      "created_at": "2026-04-23T17:04:31.912Z",
+      "updated_at": "2026-04-23T17:04:31.912Z"
+    },
+    {
       "branch_name": "main",
       "worktree_path": "/Users/stephenbeale/Projects/SeshGuard",
       "status": "active",
