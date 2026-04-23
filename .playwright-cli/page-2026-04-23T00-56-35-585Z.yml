@@ -1,0 +1,28 @@
+- generic [ref=e3]:
+  - navigation [ref=e4]:
+    - generic [ref=e5]:
+      - img "SeshGuard pill hero" [ref=e7]
+      - generic [ref=e8]: SeshGuard
+    - button [ref=e10]:
+      - img [ref=e11]
+  - main [ref=e12]:
+    - generic [ref=e13]:
+      - heading "Interaction Terminal" [level=1] [ref=e14]
+      - paragraph [ref=e15]: "> No telemetry recording active"
+    - generic [ref=e16]:
+      - generic [ref=e17]:
+        - generic [ref=e18]:
+          - text: Choose the first drug
+          - button "Select substance..." [ref=e19]:
+            - generic [ref=e20]: Select substance...
+            - img [ref=e21]
+        - generic [ref=e23]:
+          - text: Choose the second drug
+          - button "Select substance..." [ref=e24]:
+            - generic [ref=e25]: Select substance...
+            - img [ref=e26]
+      - button "Execute Analysis" [disabled] [ref=e29]
+    - link "Terminal Core | New Psychonaut" [ref=e31] [cursor=pointer]:
+      - /url: https://www.newpsychonaut.com
+      - text: Terminal Core | New Psychonaut
+      - img [ref=e32]
