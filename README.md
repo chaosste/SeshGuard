@@ -94,12 +94,15 @@ The workflow then uploads the resulting zip through Kudu Zip Deploy, which is th
 4. Keep the Azure startup command set to `node server.js`, or unset it if the App Service runtime already starts the same entrypoint.
 5. Keep `SCM_DO_BUILD_DURING_DEPLOYMENT=false` and `ENABLE_ORYX_BUILD=false` for this app, because the deployed zip is already fully built.
 6. Optionally set the App Service health check path to `/api/health`.
+4. Keep the Azure startup command unset unless you intentionally want to override the default Node startup behavior.
+5. Optionally set the App Service health check path to `/api/health`.
 
 ### Linux publish profile note
 
 Microsoft documents that Linux web apps may require the app setting `WEBSITE_WEBDEPLOY_USE_SCM=true` before you download a publish profile from the Azure Portal. If the portal blocks publish profile download, set that app setting first and retry.
 
 If GitHub Actions fails with `Conflict (CODE: 409)` or the runtime later logs `Cannot find package 'dotenv'`, App Service is usually trying to rebuild the prebuilt artifact with Oryx. That rebuild path is not compatible with the packaged `dist/ + server.js + production node_modules` layout used here.
+If GitHub Actions fails with `No credentials found. Add an Azure login action before this action`, the publish profile secret is usually stale, malformed, or from before a Linux SCM-enabled download. Re-download it and replace the secret, or switch the workflow to the OIDC secrets above.
 
 ### Deploy
 
