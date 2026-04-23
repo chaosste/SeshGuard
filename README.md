@@ -57,9 +57,49 @@ npm run dev
 # Build for production
 npm run build
 
+# Assemble the Azure deployment bundle
+npm run package:azure
+
 # Type-check
 npm run lint
 ```
+
+## Azure Deployment
+
+This repo is wired to deploy to the existing Azure App Service below:
+
+| Setting | Value |
+|-------|-----------|
+| App Service | `seshguard` |
+| Resource group | `neurophenom_group-a499` |
+| Region | `switzerlandnorth` |
+| Runtime | Linux Node `22-lts` |
+
+Deployment is handled by GitHub Actions in [.github/workflows/deploy-azure.yml](/Users/stephenbeale/Projects/SeshGuard/.github/workflows/deploy-azure.yml). The workflow builds and tests the app, then assembles a deployment folder containing:
+
+- `dist/`
+- `server.js`
+- `package.json`
+- `package-lock.json`
+- production-only `node_modules`
+
+This avoids the source-only zip problem that caused Azure to miss runtime packages such as `dotenv`.
+
+### One-time setup
+
+1. Add the GitHub repository secret `AZURE_WEBAPP_PUBLISH_PROFILE` with the App Service publish profile contents.
+2. Ensure the App Service has the `GEMINI_API_KEY` application setting configured.
+3. Keep the Azure startup command unset unless you intentionally want to override the default Node startup behavior.
+4. Optionally set the App Service health check path to `/api/health`.
+
+### Linux publish profile note
+
+Microsoft documents that Linux web apps may require the app setting `WEBSITE_WEBDEPLOY_USE_SCM=true` before you download a publish profile from the Azure Portal. If the portal blocks publish profile download, set that app setting first and retry.
+
+### Deploy
+
+- Push to `main` to trigger the production deployment workflow.
+- Or run the workflow manually from the GitHub Actions tab with `workflow_dispatch`.
 
 ## Related Projects
 
