@@ -87,14 +87,17 @@ This avoids the source-only zip problem that caused Azure to miss runtime packag
 
 ### One-time setup
 
-1. Add the GitHub repository secret `AZURE_WEBAPP_PUBLISH_PROFILE` with the App Service publish profile contents.
-2. Ensure the App Service has the `GEMINI_API_KEY` application setting configured.
-3. Keep the Azure startup command unset unless you intentionally want to override the default Node startup behavior.
-4. Optionally set the App Service health check path to `/api/health`.
+1. Prefer GitHub OIDC for deploy auth by adding `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, and `AZURE_SUBSCRIPTION_ID` as repository or environment secrets.
+2. Or add the fallback secret `AZURE_WEBAPP_PUBLISH_PROFILE` with the App Service publish profile XML.
+3. Ensure the App Service has the `GEMINI_API_KEY` application setting configured.
+4. Keep the Azure startup command unset unless you intentionally want to override the default Node startup behavior.
+5. Optionally set the App Service health check path to `/api/health`.
 
 ### Linux publish profile note
 
 Microsoft documents that Linux web apps may require the app setting `WEBSITE_WEBDEPLOY_USE_SCM=true` before you download a publish profile from the Azure Portal. If the portal blocks publish profile download, set that app setting first and retry.
+
+If GitHub Actions fails with `No credentials found. Add an Azure login action before this action`, the publish profile secret is usually stale, malformed, or from before a Linux SCM-enabled download. Re-download it and replace the secret, or switch the workflow to the OIDC secrets above.
 
 ### Deploy
 
