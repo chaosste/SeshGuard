@@ -6,11 +6,15 @@
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",
     "build": "vite build",
+    "package:azure": "rm -rf .azure-deploy && mkdir -p .azure-deploy && cp package.json package-lock.json server.js .azure-deploy/ && cp -R dist .azure-deploy/dist && npm ci --omit=dev --prefix .azure-deploy",
     "start": "node server.js",
     "preview": "vite preview",
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",
     "test": "node --test"
+  },
+  "engines": {
+    "node": ">=22 <25"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",
