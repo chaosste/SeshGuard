@@ -16,6 +16,7 @@ concurrency:
 env:
   AZURE_WEBAPP_NAME: seshguard
   AZURE_WEBAPP_PACKAGE_PATH: .azure-deploy
+  AZURE_WEBAPP_PACKAGE_ZIP: seshguard-azure-deploy.zip
   NODE_VERSION: 22.x
 
 jobs:
@@ -50,6 +51,16 @@ jobs:
       - name: Assemble Azure deployment package
         run: npm run package:azure
 
+      - name: Create deployable zip artifact
+        run: |
+          rm -f "${{ env.AZURE_WEBAPP_PACKAGE_ZIP }}"
+          cd "${{ env.AZURE_WEBAPP_PACKAGE_PATH }}"
+          zip -qr "../${{ env.AZURE_WEBAPP_PACKAGE_ZIP }}" .
+
+      - name: Verify packaged runtime dependencies
+        run: |
+          unzip -l "${{ env.AZURE_WEBAPP_PACKAGE_ZIP }}" | grep 'node_modules/dotenv/package.json'
+
       - name: Validate Azure publish profile secret
         env:
           AZURE_WEBAPP_PUBLISH_PROFILE: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
@@ -64,4 +75,4 @@ jobs:
         with:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-          package: ${{ env.AZURE_WEBAPP_PACKAGE_PATH }}
+          package: ${{ env.AZURE_WEBAPP_PACKAGE_ZIP }}
