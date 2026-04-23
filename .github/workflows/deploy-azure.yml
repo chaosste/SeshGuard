@@ -16,6 +16,7 @@ concurrency:
 
 env:
   AZURE_WEBAPP_NAME: seshguard
+  AZURE_RESOURCE_GROUP: neurophenom_group-a499
   AZURE_WEBAPP_PACKAGE_PATH: .azure-deploy
   AZURE_WEBAPP_PACKAGE_ZIP: seshguard-azure-deploy.zip
   NODE_VERSION: 22.x
@@ -98,6 +99,107 @@ jobs:
       - name: Log in to Azure
         if: steps.azure-auth.outputs.auth_mode == 'oidc'
         uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Load Zip Deploy credentials from Azure
+        if: steps.azure-auth.outputs.auth_mode == 'oidc'
+        env:
+          AZURE_WEBAPP_NAME: ${{ env.AZURE_WEBAPP_NAME }}
+          AZURE_RESOURCE_GROUP: ${{ env.AZURE_RESOURCE_GROUP }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import subprocess
+
+          cmd = [
+              "az",
+              "webapp",
+              "deployment",
+              "list-publishing-profiles",
+              "--name",
+              os.environ["AZURE_WEBAPP_NAME"],
+              "--resource-group",
+              os.environ["AZURE_RESOURCE_GROUP"],
+              "--output",
+              "json",
+          ]
+          profiles = json.loads(subprocess.check_output(cmd, text=True))
+          zip_profile = next(profile for profile in profiles if profile.get("publishMethod") == "ZipDeploy")
+          output_path = os.environ["GITHUB_ENV"]
+          with open(output_path, "a", encoding="utf-8") as handle:
+              handle.write(f"DEPLOY_USER={zip_profile['userName']}\n")
+              handle.write(f"DEPLOY_PASS={zip_profile['userPWD']}\n")
+          print(f"::add-mask::{zip_profile['userName']}")
+          print(f"::add-mask::{zip_profile['userPWD']}")
+          PY
+
+      - name: Load Zip Deploy credentials from publish profile
+        if: steps.azure-auth.outputs.auth_mode == 'publish-profile'
+        env:
+          AZURE_WEBAPP_PUBLISH_PROFILE: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+        run: |
+          python - <<'PY'
+          import os
+          import xml.etree.ElementTree as ET
+
+          root = ET.fromstring(os.environ["AZURE_WEBAPP_PUBLISH_PROFILE"])
+          profile = next(
+              profile for profile in root.iter("publishProfile")
+              if profile.attrib.get("publishMethod") == "ZipDeploy"
+          )
+          user = profile.attrib["userName"]
+          password = profile.attrib["userPWD"]
+          with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as handle:
+              handle.write(f"DEPLOY_USER={user}\n")
+              handle.write(f"DEPLOY_PASS={password}\n")
+          print(f"::add-mask::{user}")
+          print(f"::add-mask::{password}")
+          PY
+
+      - name: Deploy to Azure App Service with Kudu Zip Deploy
+        env:
+          PACKAGE_ZIP: ${{ env.AZURE_WEBAPP_PACKAGE_ZIP }}
+          SCM_HOST: ${{ env.AZURE_WEBAPP_NAME }}.scm.azurewebsites.net
+        run: |
+          curl -fsS -X POST \
+            -u "$DEPLOY_USER:$DEPLOY_PASS" \
+            -H "Content-Type: application/zip" \
+            --data-binary @"$PACKAGE_ZIP" \
+            -D "$RUNNER_TEMP/zipdeploy-headers.txt" \
+            "https://$SCM_HOST/api/zipdeploy?isAsync=true"
+
+          status_url="$(tr -d '\r' < "$RUNNER_TEMP/zipdeploy-headers.txt" | awk '/^Location:/ {print $2}')"
+          if [ -z "$status_url" ]; then
+            echo "::error::Kudu Zip Deploy did not return a deployment status URL."
+            exit 1
+          fi
+
+          for _ in $(seq 1 180); do
+            response="$(curl -fsS -u "$DEPLOY_USER:$DEPLOY_PASS" "$status_url")"
+            status="$(python -c 'import json, sys; print(json.loads(sys.argv[1]).get("status", ""))' "$response")"
+
+            case "$status" in
+              4)
+                echo "Zip Deploy completed successfully."
+                exit 0
+                ;;
+              3)
+                echo "::error::Zip Deploy failed."
+                python -c 'import json, sys; payload = json.loads(sys.argv[1]); [print(f"{key}: {payload[key]}") for key in ("status_text", "message", "progress", "log_url") if payload.get(key)]' "$response"
+                exit 1
+                ;;
+              *)
+                sleep 5
+                ;;
+            esac
+          done
+
+          echo "::error::Timed out waiting for Kudu Zip Deploy to finish."
+          exit 1
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
